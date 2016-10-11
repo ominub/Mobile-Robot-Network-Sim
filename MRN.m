@@ -17,6 +17,11 @@ y=0:0.01:0.4;
 ImportanceMap=zeros(length(x),length(y));%
 StaticMap=zeros(length(x),length(y));% 
 DynamicMap=zeros(length(x),length(y));%
+RobotMap1=zeros(length(x),length(y));%
+RobotMap2=zeros(length(x),length(y));%
+RobotMap3=zeros(length(x),length(y));%
+RobotMap4=zeros(length(x),length(y));%
+RobotMap5=zeros(length(x),length(y));%
 StaticLayer=zeros(length(x)*length(y),1);%
 DynamicLayer=zeros(length(x)*length(y),1);%
 
@@ -32,7 +37,7 @@ ALLData=zeros(length(ALLPosition),1);
 simulationTime=100;
 cost=10000*zeros(simulationTime+1,5);
 
-robotR=0.08;
+robotR=0.02;
 taskR=0.02;
 
 
@@ -66,6 +71,14 @@ for i=1:1:length(x)
         end
         %Station
         DynamicMap(i,j)=DynamicMap(i,j)+(5-length(TaskPosition(:,1)))*10*(exp(-norm(q-StationPosition(1,:))^2/(2*0.02^2)));
+        
+        %Robot
+        RobotMap1(i,j)=exp(-(norm(q-RobotPosition(1,:))-robotR)^4/(2*(robotR/2/4)^4));
+        RobotMap2(i,j)=exp(-(norm(q-RobotPosition(2,:))-robotR)^4/(2*(robotR/2/4)^4));
+        RobotMap3(i,j)=exp(-(norm(q-RobotPosition(3,:))-robotR)^4/(2*(robotR/2/4)^4));
+        RobotMap4(i,j)=exp(-(norm(q-RobotPosition(4,:))-robotR)^4/(2*(robotR/2/4)^4));
+        RobotMap5(i,j)=exp(-(norm(q-RobotPosition(5,:))-robotR)^4/(2*(robotR/2/4)^4));
+        
     end
 end
 
@@ -134,36 +147,35 @@ for t=1:1:simulationTime
         for j=1:1:length(ImportanceMap(1,:))
             
             q=[x(i), y(j)];
-            d=0;
+            d=0;h=0;dh=0;
             dphi=ImportanceMap(i,j);
             %Assumption of SDF
             if dphi<0
                 dphi=0;
             end
-            %penalty function
-            for coverbot=1:1:length(RobotPosition(:,1))
-                
-                d=d+dphi/length(RobotPosition(:,1))-5*exp(-norm(q-RobotPosition(coverbot,:))^2/(2*robotR^2));
-                
-            end
-            [d,z]=max([0 d]);
-             h=d^2;
-             dh=2*d;
-             if z==1
-                    h=0;
-                    dh=0;
-             end
+%             %penalty function
+%             for coverbot=1:1:length(RobotPosition(:,1))
+%                 
+%                 d=dphi-10*exp(-norm(q-RobotPosition(coverbot,:))^2/(2*robotR^2));
+%                 [d,z]=max([0 d]);
+%                 h=h+d^2;
+%                 dh=dh+2*d;
+%                 
+%             end
+%             h=h/length(RobotPosition(:,1));
+%             dh=dh/length(RobotPosition(:,1));
              
-             cost(t)=cost(t)+h*dphi;
+%              cost(t)=cost(t)+h*dphi;
              
             for whichrobot=1:1:length(RobotPosition(:,1))
-                MobileControl(whichrobot,:)= MobileControl(whichrobot,:)+(RobotPosition(whichrobot,:)-q)*dh*dphi*exp(-norm(q-RobotPosition(whichrobot,:))^2/(2*robotR^2));
+             h=norm(q-RobotPosition(whichrobot,:))-robotR;
+                MobileControl(whichrobot,:)= MobileControl(whichrobot,:)-exp(-h^4)*h^3*dphi;
                  
             end
         end
         
     end
-    Km=0.0008;
+    Km=0.0001;
 % Km=100;
     MobileControl=-Km*MobileControl;
     RobotPosition=RobotPosition+MobileControl;%control law
